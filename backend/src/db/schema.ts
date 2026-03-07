@@ -40,7 +40,20 @@ export const sessions = pgTable("sessions", {
         .notNull()
         .defaultNow()
         .$onUpdate(() => new Date()),
-});
+    }, (table) => ({
+    sessionTimeOrderCheck: check(
+        "session_time_order_check",
+        sql`${table.startTime} < ${table.endTime}`,
+    ),
+    sessionPriceCheck: check(
+        "session_price_check",
+        sql`${table.price} >= 0`,
+    ),
+    sessionMaxSlotsCheck: check(
+        "session_max_slots_check",
+        sql`${table.maxSlots} > 0`,
+    ),
+}));
 
 // BOOKINGS TABLE (JUNCTION TABLE)
 export const bookings = pgTable("bookings", {
@@ -59,7 +72,15 @@ export const bookings = pgTable("bookings", {
         .notNull()
         .defaultNow()
         .$onUpdate(() => new Date()),
-});
+}, (table) => [
+    check(
+        "bookings_guest_name_nonblank",
+        sql`${table.guestName} IS NULL OR btrim(${table.guestName}) <> ''`,
+    ),
+    uniqueIndex("bookings_user_session_unique")
+        .on(table.userId, table.sessionId)
+        .where(sql`${table.guestName} IS NULL`),
+]);
 
 // Partial Unique Constraint: 
 // Ensures a user can only have ONE personal booking (where guestName is null) per session.
