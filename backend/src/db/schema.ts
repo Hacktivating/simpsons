@@ -82,13 +82,6 @@ export const bookings = pgTable("bookings", {
         .where(sql`${table.guestName} IS NULL`),
 ]);
 
-// Partial Unique Constraint: 
-// Ensures a user can only have ONE personal booking (where guestName is null) per session.
-// Does not restrict the number of guest bookings a user can make.
-export const bookingsUniqueUserSession = uniqueIndex("bookings_user_session_unique")
-    .on(bookings.userId, bookings.sessionId)
-    .where(sql`guest_name IS NULL`);
-
 // MATCHES TABLE
 // Records 1-on-1 game outcomes within a specific session.
 export const matches = pgTable("matches", {
