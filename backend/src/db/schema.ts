@@ -1,4 +1,5 @@
-import { date, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, date, integer, pgTable, text, time, timestamp, uuid, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 
 // ==========================================
@@ -14,7 +15,10 @@ export const users = pgTable("users", {
     name: text("name").notNull(),
     imageUrl: text("image_url"),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
 });
 
 // SESSIONS TABLE
@@ -32,26 +36,37 @@ export const sessions = pgTable("sessions", {
     // 'status' tracks if the session is open for registration, full, or completed.
     status: text("status").notNull(),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
 });
 
 // BOOKINGS TABLE (JUNCTION TABLE)
-// Resolves the Many-to-Many relationship between Users and Sessions.
-// Represents a user's registration for a specific session.
 export const bookings = pgTable("bookings", {
     id: uuid("id").defaultRandom().primaryKey(),
-    // onDelete: "cascade" ensures if a user is deleted, their bookings are removed.
     userId: text("user_id")
         .notNull()
         .references(() => users.id, { onDelete: "cascade" }),
-    // onDelete: "cascade" ensures if a session is deleted, all its bookings are removed.
     sessionId: uuid("session_id")
         .notNull()
         .references(() => sessions.id, { onDelete: "cascade" }),
+    // New optional field for guest bookings
+    guestName: text("guest_name"), 
     paymentStatus: text("payment_status").notNull().default("unpaid"),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
 });
+
+// Partial Unique Constraint: 
+// Ensures a user can only have ONE personal booking (where guestName is null) per session.
+// Does not restrict the number of guest bookings a user can make.
+export const bookingsUniqueUserSession = uniqueIndex("bookings_user_session_unique")
+    .on(bookings.userId, bookings.sessionId)
+    .where(sql`guest_name IS NULL`);
 
 // MATCHES TABLE
 // Records 1-on-1 game outcomes within a specific session.
@@ -68,8 +83,13 @@ export const matches = pgTable("matches", {
         .references(() => users.id, { onDelete: "cascade" }),
     score: text("score").notNull(),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
-});
+    updatedAt: timestamp("updated_at", { mode: "date" })
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+}, (table) => ({
+    winnerLoserCheck: check("winner_loser_check", sql`${table.winnerId} <> ${table.loserId}`),
+}));
 
 // ==========================================
 // 2. RELATIONAL MAPPING FOR DRIZZLE QUERIES
