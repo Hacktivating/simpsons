@@ -73,11 +73,18 @@ export const getMyBookings = async (req: Request, res: Response) => {
 
 export const updateBookingPaymentStatus = async (req: Request, res: Response) => {
     try {
+        const { userId } = getAuth(req);
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
         const { id } = req.params as { id: string };
         const { paymentStatus } = req.body;
 
-        if (!paymentStatus) {
-            return res.status(400).json({ error: "Missing payment status" });
+        const validStatuses = ["paid", "unpaid", "pending"];
+
+        if (!paymentStatus || !validStatuses.includes(paymentStatus)) {
+            return res.status(400).json({ error: "Invalid payment status" });
         }
 
         const updatedBooking = await queries.updateBookingPaymentStatus(id, paymentStatus);
@@ -95,7 +102,23 @@ export const updateBookingPaymentStatus = async (req: Request, res: Response) =>
 
 export const deleteBooking = async (req: Request, res: Response) => {
     try {
+        const { userId } = getAuth(req);
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
         const { id } = req.params as { id: string };
+        
+        //Fetch booking first to verify ownership
+        const booking = await queries.getBookingById(id);
+        if (!booking) {
+            return res.status(404).json({ error: "Booking not found" });
+        }
+
+        if (booking.userId !== userId) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
         const deletedBooking = await queries.deleteBooking(id);
 
         if (!deletedBooking) {
