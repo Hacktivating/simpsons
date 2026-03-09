@@ -156,13 +156,13 @@ export const matchRelations = relations(matches, ({ one }) => ({
 }));
 
 export type User = typeof users.$inferSelect;
-export type newUser = typeof users.$inferInsert;
+export type NewUser = typeof users.$inferInsert;
 
 export type Session = typeof sessions.$inferSelect;
-export type newSession = typeof sessions.$inferInsert;
+export type NewSession = typeof sessions.$inferInsert;
 
 export type Booking = typeof bookings.$inferSelect;
-export type newBooking = typeof bookings.$inferInsert;
+export type NewBooking = typeof bookings.$inferInsert;
 
 export type Match = typeof matches.$inferSelect;
-export type newMatch = typeof matches.$inferInsert;
+export type NewMatch = typeof matches.$inferInsert;
