@@ -42,11 +42,20 @@ export const updateUser = async (id: string, data: Partial<NewUser>) => {
 };
 
 export const upsertUser = async (data: NewUser) => {
-    const existingUser = await getUserById(data.id);
-    if (existingUser) {
-        return await updateUser(data.id, data);
-    }
-    return await createUser(data);
+    // const existingUser = await getUserById(data.id);
+    // if (existingUser) {
+    //     return await updateUser(data.id, data);
+    // }
+    // return await createUser(data);
+    const [user] = await db
+        .insert(users)
+        .values(data)
+        .onConflictDoUpdate({
+            target: users.id,
+            set: data,
+        })
+        .returning();
+    return user;
 }
 
 export const deleteUser = async (id: string) => {
