@@ -5,8 +5,15 @@ import SessionPage from "./pages/SessionPage"
 import ProfilePage from "./pages/ProfilePage"
 import CreateSessionPage from "./pages/CreateSessionPage"
 import EditSessionPage from "./pages/EditSessionPage"
+import { useQuery } from "@tanstack/react-query"
+import useAuthReq from "./hooks/useAuthReq"
+import useUserSync from "./hooks/useUserSync"
 
 function App() {
+  const {isClerkLoaded, isSignedIn} = useAuthReq();
+  useUserSync();
+
+  if (!isClerkLoaded) return null;
 
   return (
     <div className="min-h-screen bg-base-100">
